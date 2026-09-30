@@ -1,0 +1,35 @@
+[package]
+name = "locate-anything"
+version = "0.1.0"
+edition = "2021"
+description = "Rust (candle) inference for nvidia/LocateAnything-3B (MoonViT + Qwen2.5 with Parallel Box Decoding)"
+
+[lib]
+name = "locate_anything"
+path = "src/lib.rs"
+
+[[bin]]
+name = "locate-anything"
+path = "src/main.rs"
+
+[features]
+default = ["cuda"]
+cuda = ["candle-core/cuda", "candle-nn/cuda"]
+# FlashAttention-2 kernels for the vision tower and LM prefill (long first build).
+flash-attn = ["cuda", "dep:candle-flash-attn"]
+
+[dependencies]
+anyhow = "1"
+candle-core = "0.11"
+candle-nn = "0.11"
+candle-flash-attn = { version = "0.11", optional = true }
+clap = { version = "4", features = ["derive"] }
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "bmp"] }
+rand = "0.8"
+regex = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokenizers = { version = "0.22", default-features = false, features = ["fancy-regex"] }
+
+[profile.release]
+opt-level = 3
