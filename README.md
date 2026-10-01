@@ -50,7 +50,9 @@ locate-anything --image ui.png  --task gui    -q "the search button"
 locate-anything --image img.jpg -q "ship" --json --temperature 0 --mode slow -v
 ```
 
-`--model` defaults to `/mnt/extra/ai/LocateAnything-3B`. Sampling defaults
+Without `--model`, the checkpoint is downloaded from Hugging Face on first use (about 7.6 GB) into
+`$XDG_CACHE_HOME/locate-anything-rs/LocateAnything-3B` (default `~/.cache/locate-anything-rs/...`), and reused
+afterwards. Pass `--model DIR` to use a local clone instead. Sampling defaults
 match the upstream worker: `temperature=0.7, top_p=0.9, repetition_penalty=1.1`.
 `--max-patches` lowers the vision budget (default 25600 patches ≈ 6400 LLM
 tokens) for faster runs on big images.
@@ -78,3 +80,19 @@ identical to PIL's.
 
 Attention is plain chunked SDPA (the score matrix is kept to about 1 GiB per chunk), so no
 flash-attn or MagiAttention build is needed. Batch size is 1, same as upstream `generate`.
+
+## Install
+
+Prebuilt packages (locate-anything) for macOS (Apple Silicon), Linux x86_64 and Linux arm64:
+
+```bash
+brew tap apiplant/tap && brew install apiplant/tap/locate-anything-rs      # macOS, Linux
+sudo apt install locate-anything-rs      # Debian/Ubuntu, after adding apt.apiplant.com
+sudo pacman -S locate-anything-rs        # Arch, after adding apiplant.github.io/pacman
+```
+
+CUDA builds (Linux x86_64, NVIDIA GPU) are separate packages: `locate-anything-rs-cuda` (`brew install apiplant/tap/locate-anything-rs-cuda`, `sudo apt install locate-anything-rs-cuda`, `sudo pacman -S locate-anything-rs-cuda`). They conflict with `locate-anything-rs`.
+
+Setup commands for the apt and pacman repositories, the plain archives and the release process are in [`packaging/README.md`](packaging/README.md). Release archives are on the [releases page](https://github.com/apiplant/locate-anything-rs/releases).
+
+Website and in-browser demo: <https://locate-anything-rs.apiplant.com>.

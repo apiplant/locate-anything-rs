@@ -1,5 +1,6 @@
 pub mod attention;
 pub mod config;
+pub mod download;
 pub mod image_proc;
 pub mod model;
 pub mod output;

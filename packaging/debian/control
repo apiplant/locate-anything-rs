@@ -1,0 +1,14 @@
+Package: locate-anything-rs
+Version: @VERSION@
+Section: utils
+Priority: optional
+Architecture: @ARCH@
+Maintainer: apiplant <releases@apiplant.com>
+Installed-Size: @INSTALLED_SIZE@
+Homepage: https://github.com/apiplant/locate-anything-rs
+Description: Rust (candle) inference for nvidia/LocateAnything-3B visual grounding
+ locate-anything detects, grounds, points at and reads text in images
+ with nvidia/LocateAnything-3B (MoonViT + Qwen2.5 with Parallel Box
+ Decoding), locally via candle. The model weights (about 7.6 GB) are
+ downloaded from Hugging Face on first use into ~/.cache/locate-anything-
+ rs, or taken from --model DIR.

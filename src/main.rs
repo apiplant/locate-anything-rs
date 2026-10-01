@@ -44,11 +44,13 @@ impl Task {
 }
 
 #[derive(Parser, Debug)]
-#[command(about = "LocateAnything-3B visual grounding in Rust (candle)")]
+#[command(version, about = "LocateAnything-3B visual grounding in Rust (candle)")]
 struct Args {
-    /// Local model directory (clone of nvidia/LocateAnything-3B).
-    #[arg(long, default_value = "/mnt/extra/ai/LocateAnything-3B")]
-    model: PathBuf,
+    /// Model directory (a clone of nvidia/LocateAnything-3B). Defaults to the checkpoint in the
+    /// locate-anything-rs cache directory (`$XDG_CACHE_HOME/locate-anything-rs`, else
+    /// `~/.cache/locate-anything-rs`), downloaded there from Hugging Face first if it isn't present.
+    #[arg(long)]
+    model: Option<PathBuf>,
     #[arg(long)]
     image: PathBuf,
     #[arg(long, value_enum, default_value = "detect")]
@@ -95,11 +97,16 @@ fn main() -> Result<()> {
         bail!("--query is required for task {:?}", args.task);
     }
 
+    let model_dir = match &args.model {
+        Some(dir) => dir.clone(),
+        None => locate_anything::download::download()?,
+    };
+
     let device = if args.cpu { Device::Cpu } else { Device::cuda_if_available(0)? };
     let dtype = if device.is_cpu() || args.f32 { DType::F32 } else { DType::BF16 };
 
     let t = Instant::now();
-    let mut model = LocateAnything::load(&args.model, &device, dtype)?;
+    let mut model = LocateAnything::load(&model_dir, &device, dtype)?;
     eprintln!("loaded model on {device:?} ({dtype:?}) in {:.1}s", t.elapsed().as_secs_f64());
 
     let img = image_proc::to_rgb(&image::open(&args.image)?);

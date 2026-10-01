@@ -29,6 +29,7 @@ rand = "0.8"
 regex = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+ureq = "2"
 tokenizers = { version = "0.22", default-features = false, features = ["fancy-regex"] }
 
 [profile.release]
