@@ -13,40 +13,34 @@ export function DocsLibrary() {
 
       <Section>
         <H2>Add the dependency</H2>
-        <CopyBlock command={`cargo add locate-anything --git https://github.com/apiplant/locate-anything-rs
-# CPU only, no CUDA toolchain needed:
-cargo add locate-anything --git https://github.com/apiplant/locate-anything-rs --no-default-features`} />
+        <CopyBlock command={`cargo add locate-anything                      # CPU only, no CUDA toolchain needed
+cargo add locate-anything --features cuda      # + CUDA`} />
       </Section>
 
       <Section>
         <H2>Detect objects</H2>
         <Pre caption="src/main.rs" lang="rust">{`use candle_core::{DType, Device};
-use locate_anything::{image_proc, output, GenerateOptions, GenerationMode, LocateAnything, SamplingParams};
+use locate_anything::{prompts, GenerateOptions, LocateAnything};
 
-let device = Device::cuda_if_available(0)?;
-let mut model = LocateAnything::load("LocateAnything-3B".as_ref(), &device, DType::BF16)?;
+// Downloads the checkpoint into ~/.cache/locate-anything-rs on first use (about 7.6 GB);
+// LocateAnything::load(path, &device, dtype) takes a local clone instead.
+let device = Device::cuda_if_available(0)?;       // the CPU unless the \`cuda\` feature is on
+let mut model = LocateAnything::from_pretrained(&device, DType::BF16)?;   // DType::F32 on the CPU
 
-let img = image_proc::to_rgb(&image::open("street.jpg")?);
-let processed = model.preprocess(&img, None)?;          // None = the checkpoint's patch budget
+let image = image::open("street.jpg")?.to_rgb8();
+let found = model.locate(&image, &prompts::detect(&["person", "car"]), &GenerateOptions::greedy())?;
 
-let prompt = "Locate all the instances that matches the following description: person</c>car.";
-let opts = GenerateOptions {
-    mode: GenerationMode::Hybrid,
-    max_new_tokens: 8192,
-    sampling: SamplingParams { temperature: 0.0, top_p: None, top_k: None, repetition_penalty: 1.1 },
-    seed: 0,
-    verbose: false,
-};
-let (answer, stats) = model.generate(&processed, prompt, &opts)?;
-
-for d in output::parse(&answer, img.width(), img.height()) {
+for d in &found.detections {
     println!("{d:?}");
 }
-println!("{} forward steps, {:.2}s", stats.forward_steps, stats.total_secs);`}</Pre>
+println!("{} forward steps, {:.2}s", found.stats.forward_steps, found.stats.total_secs);`}</Pre>
         <P>
-          <IC>output::parse</IC> returns <IC>Detection::Box</IC> or <IC>Detection::Point</IC> values in pixel
-          coordinates; <IC>output::draw</IC> paints them onto an <IC>RgbImage</IC>. Use <IC>DType::F32</IC> on
-          the CPU.
+          <IC>found.detections</IC> holds <IC>Detection::Box</IC> or <IC>Detection::Point</IC> values in pixel
+          coordinates; <IC>output::draw</IC> paints them onto an <IC>RgbImage</IC>.{" "}
+          <IC>GenerateOptions::greedy()</IC> gives the same answer every run; <IC>GenerateOptions::default()</IC>
+          samples like the upstream worker. <IC>locate_anything::prompts</IC> builds the prompt for each task:{" "}
+          <IC>detect</IC>, <IC>ground</IC>, <IC>ground_single</IC>, <IC>text</IC>, <IC>detect_text</IC>,{" "}
+          <IC>gui</IC> and <IC>point</IC>.
         </P>
       </Section>
 

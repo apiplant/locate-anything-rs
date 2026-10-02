@@ -33,6 +33,39 @@ pub struct GenerateOptions {
     pub verbose: bool,
 }
 
+impl Default for GenerateOptions {
+    /// The upstream worker's defaults: hybrid decoding, temperature 0.7, top-p 0.9, repetition penalty 1.1.
+    fn default() -> Self {
+        Self {
+            mode: GenerationMode::Hybrid,
+            max_new_tokens: 8192,
+            sampling: SamplingParams { temperature: 0.7, top_p: Some(0.9), top_k: None, repetition_penalty: 1.1 },
+            seed: 0,
+            verbose: false,
+        }
+    }
+}
+
+impl GenerateOptions {
+    /// Hybrid decoding with temperature 0: the same answer every run.
+    pub fn greedy() -> Self {
+        Self {
+            sampling: SamplingParams { temperature: 0.0, top_p: Some(0.9), top_k: None, repetition_penalty: 1.1 },
+            ..Self::default()
+        }
+    }
+}
+
+/// What [`LocateAnything::locate`] returns.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct Located {
+    /// The raw model answer, `<ref>label</ref><box><x1><y1><x2><y2></box>...`.
+    pub answer: String,
+    /// The answer as boxes and points in pixel coordinates of the input image.
+    pub detections: Vec<crate::output::Detection>,
+    pub stats: GenerateStats,
+}
+
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct GenerateStats {
     pub num_tokens: usize,
@@ -98,6 +131,21 @@ impl LocateAnything {
         let lm = Qwen2::new(&config.text_config, vb.pp("language_model"))?;
         let token_ids = config.token_ids();
         Ok(Self { config, preprocessor, tokenizer, vision, projector, lm, token_ids, device: device.clone() })
+    }
+
+    /// Loads the checkpoint from the locate-anything-rs cache directory, downloading it from Hugging Face
+    /// first when it is not there yet (see [`crate::download`]).
+    pub fn from_pretrained(device: &Device, dtype: DType) -> Result<Self> {
+        Self::load(&crate::download::download()?, device, dtype)
+    }
+
+    /// One call from image to detections: preprocess, generate, and parse the answer into pixel
+    /// coordinates. Use [`crate::prompts`] to build `prompt`.
+    pub fn locate(&mut self, img: &image::RgbImage, prompt: &str, opts: &GenerateOptions) -> Result<Located> {
+        let processed = self.preprocess(img, None)?;
+        let (answer, stats) = self.generate(&processed, prompt, opts)?;
+        let detections = crate::output::parse(&answer, img.width(), img.height());
+        Ok(Located { answer, detections, stats })
     }
 
     pub fn preprocess(&self, img: &image::RgbImage, in_token_limit: Option<usize>) -> Result<ProcessedImage> {

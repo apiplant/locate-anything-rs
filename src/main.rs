@@ -27,17 +27,15 @@ enum Task {
 
 impl Task {
     fn prompt(self, q: &str) -> String {
+        use locate_anything::prompts;
         match self {
-            Task::Detect => {
-                let cats: Vec<&str> = q.split(',').map(str::trim).filter(|s| !s.is_empty()).collect();
-                format!("Locate all the instances that matches the following description: {}.", cats.join("</c>"))
-            }
-            Task::Ground => format!("Locate all the instances that match the following description: {q}."),
-            Task::GroundSingle => format!("Locate a single instance that matches the following description: {q}."),
-            Task::Text => format!("Please locate the text referred as {q}."),
-            Task::DetectText => "Detect all the text in box format.".into(),
-            Task::Gui => format!("Locate the region that matches the following description: {q}."),
-            Task::Point => format!("Point to: {q}."),
+            Task::Detect => prompts::detect(&q.split(',').collect::<Vec<_>>()),
+            Task::Ground => prompts::ground(q),
+            Task::GroundSingle => prompts::ground_single(q),
+            Task::Text => prompts::text(q),
+            Task::DetectText => prompts::detect_text(),
+            Task::Gui => prompts::gui(q),
+            Task::Point => prompts::point(q),
             Task::Raw => q.into(),
         }
     }

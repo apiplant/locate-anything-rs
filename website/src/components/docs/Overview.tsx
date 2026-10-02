@@ -48,9 +48,9 @@ locate-anything --model /path/to/LocateAnything-3B --image street.jpg --task det
           and Linux arm64, and a CUDA build for Linux x86_64 (<IC>locate-anything-rs-cuda</IC>, bf16 on the
           GPU). Building from source is the same choice:
         </P>
-        <CopyBlock command={`cargo build --release                         # CUDA (default feature)
-cargo build --release --features flash-attn   # + FlashAttention-2 (first build ~9 min)
-cargo build --release --no-default-features   # CPU only (f32, slow)`} />
+        <CopyBlock command={`cargo build --release                         # CPU only (f32, slow)
+cargo build --release --features cuda         # CUDA (bf16)
+cargo build --release --features flash-attn   # CUDA + FlashAttention-2 (first build ~9 min)`} />
         <P>
           <IC>flash-attn</IC> routes the vision tower and the LM prefill through FlashAttention-2. Decode steps
           stay on the masked path because they have only a few queries. It matters most for large images.

@@ -11,9 +11,9 @@ No Python needed at runtime. The tokenizer is built from `vocab.json`,
 ## Build
 
 ```sh
-cargo build --release                         # CUDA (default feature)
-cargo build --release --features flash-attn   # + FlashAttention-2 (first build ~9 min)
-cargo build --release --no-default-features   # CPU only (f32, slow)
+cargo build --release                         # CPU only (f32, slow)
+cargo build --release --features cuda         # CUDA (bf16)
+cargo build --release --features flash-attn   # CUDA + FlashAttention-2 (first build ~9 min)
 ```
 
 `flash-attn` routes the vision tower and the LM prefill through
@@ -80,6 +80,37 @@ identical to PIL's.
 
 Attention is plain chunked SDPA (the score matrix is kept to about 1 GiB per chunk), so no
 flash-attn or MagiAttention build is needed. Batch size is 1, same as upstream `generate`.
+
+## Use as a library
+
+```toml
+[dependencies]
+locate-anything = "0.1"                           # CPU
+# locate-anything = { version = "0.1", features = ["cuda"] }   # + CUDA (opt-in; needs the CUDA toolkit to build)
+```
+
+GPU support is never on by default: depending on the crate never pulls in a CUDA toolchain. Enable `cuda`
+(or `flash-attn`, which implies it) from your own `Cargo.toml` and the feature is passed down to candle.
+
+```rust
+use candle_core::{DType, Device};
+use locate_anything::{prompts, GenerateOptions, LocateAnything};
+
+// Downloads the checkpoint into ~/.cache/locate-anything-rs on first use (about 7.6 GB),
+// or use `LocateAnything::load(path, &device, dtype)` for a local clone.
+let device = Device::cuda_if_available(0)?;                       // Cpu without the `cuda` feature
+let mut model = LocateAnything::from_pretrained(&device, DType::BF16)?;   // DType::F32 on CPU
+
+let image = image::open("street.jpg")?.to_rgb8();
+let found = model.locate(&image, &prompts::detect(&["person", "car"]), &GenerateOptions::greedy())?;
+for d in &found.detections {
+    println!("{d:?}");          // Detection::Box { label, x1, y1, x2, y2 } / Detection::Point { .. }
+}
+```
+
+`locate_anything::prompts` has one builder per task (`detect`, `ground`, `ground_single`, `text`,
+`detect_text`, `gui`, `point`); `output::draw` paints detections onto an image; `preprocess`,
+`encode_image`, `build_prompt` and `generate` are public for callers that drive the stages themselves.
 
 ## Install
 

@@ -1,8 +1,13 @@
 [package]
 name = "locate-anything"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "Rust (candle) inference for nvidia/LocateAnything-3B (MoonViT + Qwen2.5 with Parallel Box Decoding)"
+license = "Apache-2.0"
+repository = "https://github.com/apiplant/locate-anything-rs"
+readme = "README.md"
+keywords = ["locate-anything","object-detection","grounding","candle","vision"]
+categories = ["science","computer-vision","command-line-utilities"]
 
 [lib]
 name = "locate_anything"
@@ -13,7 +18,9 @@ name = "locate-anything"
 path = "src/main.rs"
 
 [features]
-default = ["cuda"]
+default = []
+# GPU support is opt-in, so depending on this crate never pulls in a CUDA toolchain: enable it from your
+# own Cargo.toml with `features = ["cuda"]`.
 cuda = ["candle-core/cuda", "candle-nn/cuda"]
 # FlashAttention-2 kernels for the vision tower and LM prefill (long first build).
 flash-attn = ["cuda", "dep:candle-flash-attn"]

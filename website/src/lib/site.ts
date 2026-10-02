@@ -21,8 +21,8 @@ export const SITE = {
   lead: "Tell it what to look for and it returns boxes or points: open-vocabulary detection, referring expressions, text, GUI elements. MoonViT + Qwen2.5-3B with Parallel Box Decoding, from one binary. No Python.",
   heroNote: "Runs nvidia/LocateAnything-3B. The weights (7.6 GB) download from Hugging Face on first run.",
   demo: null as { href: string; label: string } | null,
-  cargo: `cargo install --git https://github.com/apiplant/locate-anything-rs                          # CUDA (default feature)
-cargo install --git https://github.com/apiplant/locate-anything-rs --no-default-features    # CPU only (f32, slow)`,
+  cargo: `cargo install locate-anything                          # CPU only (f32, slow)
+cargo install locate-anything --features cuda          # CUDA (bf16)`,
   terminal: {
     title: "locate-anything · 640x480, RTX 4090",
     command: 'locate-anything --image cats.jpg --task detect \\\n  -q "cat, remote control" --temperature 0 --json',
@@ -96,26 +96,20 @@ cargo install --git https://github.com/apiplant/locate-anything-rs --no-default-
     },
   ] as Feature[],
   lib: {
-    lead: "Load the model once and call it as often as you like: preprocess an image, ask a question, parse the answer into pixel-space detections.",
-    add: `cargo add locate-anything --git https://github.com/apiplant/locate-anything-rs`,
+    lead: "Load the model once and call it as often as you like: one call takes an image and a prompt and returns pixel-space boxes and points. CUDA is an opt-in feature, passed down to candle.",
+    add: `cargo add locate-anything`,
     caption: "src/main.rs",
     snippet: `use candle_core::{DType, Device};
-use locate_anything::{image_proc, output, GenerateOptions, GenerationMode, LocateAnything, SamplingParams};
+use locate_anything::{prompts, GenerateOptions, LocateAnything};
 
-let device = Device::cuda_if_available(0)?;
-let mut model = LocateAnything::load("LocateAnything-3B".as_ref(), &device, DType::BF16)?;
+// Downloads the checkpoint into ~/.cache/locate-anything-rs on first use.
+let device = Device::cuda_if_available(0)?;              // Cpu unless you enable the \`cuda\` feature
+let mut model = LocateAnything::from_pretrained(&device, DType::BF16)?;
 
-let img = image_proc::to_rgb(&image::open("street.jpg")?);
-let processed = model.preprocess(&img, None)?;
-let prompt = "Locate all the instances that matches the following description: person</c>car.";
-let opts = GenerateOptions {
-    mode: GenerationMode::Hybrid,
-    max_new_tokens: 8192,
-    sampling: SamplingParams { temperature: 0.0, top_p: None, top_k: None, repetition_penalty: 1.1 },
-    seed: 0,
-    verbose: false,
-};
-let (answer, stats) = model.generate(&processed, prompt, &opts)?;
-let detections = output::parse(&answer, img.width(), img.height());`,
+let image = image::open("street.jpg")?.to_rgb8();
+let found = model.locate(&image, &prompts::detect(&["person", "car"]), &GenerateOptions::greedy())?;
+for d in &found.detections {
+    println!("{d:?}");
+}`,
   },
 };
