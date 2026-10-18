@@ -34,6 +34,30 @@ builds because bf16 rounding differs. A decode step costs about 10 ms. About 7 m
 cuBLAS streaming the 6.2 GB of weights, which is close to the bandwidth limit. The rest
 is candle's per-op launch and allocation overhead.
 
+## Models
+
+The checkpoint lives in `~/.cache/locate-anything-rs/LocateAnything-3B` (`$XDG_CACHE_HOME/locate-anything-rs`). The first run downloads it from Hugging Face (about 7.6 GB) when it is missing.
+
+If you already have the files (from `git lfs`, `hf download` or another machine), skip the download by putting them
+where it looks, or symlink them there:
+
+```sh
+mkdir -p ~/.cache/locate-anything-rs
+ln -s /path/to/LocateAnything-3B ~/.cache/locate-anything-rs/LocateAnything-3B
+```
+
+The directory must contain:
+
+```
+~/.cache/locate-anything-rs/LocateAnything-3B/
+├── config.json, preprocessor_config.json, tokenizer_config.json
+├── vocab.json, merges.txt
+├── model.safetensors.index.json
+└── the model-*.safetensors shards it lists
+```
+
+Or pass `--model DIR` to use a copy anywhere.
+
 ## Usage
 
 ```sh
